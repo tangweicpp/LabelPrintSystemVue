@@ -25,7 +25,13 @@
           </el-form-item>
         </el-form>
 
-        <el-form :inline="true" class="demo-form-inline" :model="formData" rules="rules">
+        <el-form
+          :inline="true"
+          class="demo-form-inline"
+          :model="formData"
+          :rules="rules"
+          ref="formData"
+        >
           <el-form-item label="到货单编号" prop="entryNumber">
             <el-autocomplete
               class="inline-input"
@@ -180,7 +186,7 @@ export default {
     },
     queryData() {
       this.$refs.formData.validate((vallid) => {
-        if (!vallid) {
+        if (vallid) {
           this.getTableData();
         }
       });
@@ -236,14 +242,21 @@ export default {
     },
     printLable() {
       const _selectData = this.$refs.multipleTable.selection;
-      let printData = { selectData: _selectData };
-
+      if (_selectData.length === 0) {
+        this.$message({
+          message: "请先查询出明细，否则无法打印",
+          type: "warning",
+          duration: 1000,
+        });
+        return false;
+      }
+      _selectData["entry_no"] = this.formData.entryNumber;
       console.log(_selectData);
       this.$axios
         .post(this.$Api.globalUrl + "/print_label", _selectData)
         .then((res) => {
           console.log(res);
-          if (res.status === 200) {
+          if (res.data.ret_code === 200) {
             this.$message({
               message: "打印成功",
               type: "success",
