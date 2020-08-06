@@ -55,7 +55,7 @@
             <el-button type="warning">补打</el-button>
           </el-form-item>
           <el-form-item>
-            <el-button type="info">单位用量维护</el-button>
+            <el-button type="info" @click="dialogVisible = true">单位用量维护</el-button>
           </el-form-item>
         </el-form>
         <el-table
@@ -81,6 +81,25 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-dialog title="提示" :visible.sync="dialogVisible" width="30%" :before-close="handleClose">
+          <span>维护物料单位数量</span>
+          <span slot="footer" class="dialog-footer">
+            <el-form
+              :inline="true"
+              class="demo-form-inline"
+              :model="formData2"
+              :rules="rules"
+              ref="formData2"
+            >
+              <el-form-item>
+                <el-input label="料号"></el-input>
+              </el-form-item>
+            </el-form>
+
+            <el-button @click="dialogVisible = false">取 消</el-button>
+            <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+          </span>
+        </el-dialog>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -90,6 +109,7 @@
 export default {
   data() {
     return {
+      dialogVisible: false,
       pickerOptions: {
         disabledDate(time) {
           //   return time.getTime() > Date.now() - 100;
@@ -127,6 +147,10 @@ export default {
         entryNumber: "",
         entryID: "",
       },
+      formData2: {
+        partID: "",
+        unitQty: "",
+      },
       formItemEntryNo: [],
       tableData: [],
       rules: {
@@ -145,6 +169,13 @@ export default {
     }
   },
   methods: {
+    handleClose(done) {
+      this.$confirm("确认关闭？")
+        .then((_) => {
+          done();
+        })
+        .catch((_) => {});
+    },
     queryEntryNo(queryString, cb) {
       if (
         this.formData.startDate == null ||
@@ -173,7 +204,6 @@ export default {
           cb(results);
         });
     },
-
     createFilter(queryString, queryArr) {
       return (queryArr) => {
         return (
@@ -204,6 +234,7 @@ export default {
         row["lbl_printed_qty"] = parseInt(row["lbl_printed_qty"]);
         row["lbl_non_printed_qty"] = parseInt(row["lbl_non_printed_qty"]);
         row["lbl_printing_qty"] = row["lbl_qty"];
+        row["entry_no"] = this.formData.entryNumber;
       });
     },
     getRemoteData() {
@@ -250,7 +281,6 @@ export default {
         });
         return false;
       }
-      _selectData["entry_no"] = this.formData.entryNumber;
       console.log(_selectData);
       this.$axios
         .post(this.$Api.globalUrl + "/print_label", _selectData)
