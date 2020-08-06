@@ -52,7 +52,7 @@
             <el-button type="success" @click="printLable">打印</el-button>
           </el-form-item>
           <el-form-item>
-            <el-button type="warning">补打</el-button>
+            <el-button type="warning" @click="printLableAgain">补打</el-button>
           </el-form-item>
           <el-form-item>
             <el-button type="info" @click="dialogVisible = true">单位用量维护</el-button>
@@ -74,31 +74,43 @@
           <el-table-column prop="lbl_qty" label="标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_printed_qty" label="已打印标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_non_printed_qty" label="未打印标签数量" show-overflow-tooltip></el-table-column>
-
           <el-table-column prop="lbl_printing_qty" label="本次打印数量">
             <template slot-scope="scope">
               <el-input size="mini" type="number" v-model="scope.row.lbl_printing_qty"></el-input>
             </template>
           </el-table-column>
+          <el-table-column prop="lbl_print_again_qty" label="补打标签数量">
+            <template slot-scope="scope">
+              <el-input size="mini" type="number" v-model="scope.row.lbl_print_again_qty"></el-input>
+            </template>
+          </el-table-column>
         </el-table>
-        <el-dialog title="提示" :visible.sync="dialogVisible" width="30%" :before-close="handleClose">
-          <span>维护物料单位数量</span>
-          <span slot="footer" class="dialog-footer">
-            <el-form
-              :inline="true"
-              class="demo-form-inline"
-              :model="formData2"
-              :rules="rules"
-              ref="formData2"
-            >
-              <el-form-item>
-                <el-input label="料号"></el-input>
-              </el-form-item>
-            </el-form>
+        <el-dialog
+          title="维护物料单位数量"
+          :visible.sync="dialogVisible"
+          width="30%"
+          :before-close="handleClose"
+        >
+          <el-form
+            :inline="true"
+            class="demo-form-inline"
+            :model="formData2"
+            :rules="rules"
+            ref="formData2"
+          >
+            <el-form-item label="物料名称" prop="partName">
+              <el-input v-model="formData2.partName" placeholder="输入物料名称" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="料号" prop="partID">
+              <el-input v-model="formData2.partID" placeholder="输入料号" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="单位数量" prop="unitQty">
+              <el-input v-model="formData2.unitQty" type="number" placeholder="输入单位数量" clearable></el-input>
+            </el-form-item>
+          </el-form>
 
-            <el-button @click="dialogVisible = false">取 消</el-button>
-            <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
-          </span>
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="setUnitQty">确 定</el-button>
         </el-dialog>
       </el-tab-pane>
     </el-tabs>
@@ -139,7 +151,6 @@ export default {
           },
         ],
       },
-      lbl_printing_qty: "",
       activeName: "first",
       formData: {
         startDate: "",
@@ -148,6 +159,7 @@ export default {
         entryID: "",
       },
       formData2: {
+        partName: "",
         partID: "",
         unitQty: "",
       },
@@ -215,6 +227,9 @@ export default {
       this.formData.entryID = item.entryID;
     },
     queryData() {
+      this.formData2.partName = "";
+      this.formData2.partID = "";
+      this.formData2.unitQty = "";
       this.$refs.formData.validate((vallid) => {
         if (vallid) {
           this.getTableData();
@@ -250,6 +265,12 @@ export default {
               type: "warning",
               duration: 0,
             });
+
+            if (res.data.ret_partid != "") {
+              this.dialogVisible = true;
+              this.formData2.partName = res.data.ret_part_name;
+              this.formData2.partID = res.data.ret_part_no;
+            }
             return false;
           }
 
@@ -300,6 +321,59 @@ export default {
             });
           }
         });
+    },
+    printLableAgain() {
+      const _selectData = this.$refs.multipleTable.selection;
+      if (_selectData.length === 0) {
+        this.$message({
+          message: "请先查询出明细，否则无法打印",
+          type: "warning",
+          duration: 1000,
+        });
+        return false;
+      }
+      console.log(_selectData);
+      this.$axios
+        .post(this.$Api.globalUrl + "/print_label_again", _selectData)
+        .then((res) => {
+          console.log(res);
+          if (res.data.ret_code === 200) {
+            this.$message({
+              message: "补打成功",
+              type: "success",
+              duration: 800,
+            });
+          } else {
+            this.$message({
+              message: "打印失败",
+              type: "error",
+              duration: 800,
+            });
+          }
+        });
+    },
+
+    setUnitQty() {
+      this.$axios
+        .post(this.$Api.globalUrl + "/set_unit_qty", this.formData2)
+        .then((res) => {
+          console.log(res);
+          if (res.data.ret_code === 200) {
+            this.$message({
+              message: "维护成功",
+              type: "success",
+              duration: 800,
+            });
+          } else {
+            this.$message({
+              message: "维护失败",
+              type: "error",
+              duration: 800,
+            });
+          }
+        });
+
+      this.dialogVisible = false;
     },
   },
 };
