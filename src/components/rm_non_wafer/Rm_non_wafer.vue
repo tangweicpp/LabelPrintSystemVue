@@ -167,7 +167,7 @@ export default {
       tableData: [],
       rules: {
         entryNumber: [
-          { required: true, message: "请选择或输入到货单号", trigger: "blur" },
+          { required: true, message: "请选择或输入到货单号", trigger: "change" },
         ],
       },
       multipleSelection: [],
