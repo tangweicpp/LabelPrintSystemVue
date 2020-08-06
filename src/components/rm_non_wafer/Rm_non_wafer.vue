@@ -3,10 +3,42 @@
     <el-tabs v-model="activeName">
       <el-tab-pane label="上机标签打印" name="first">
         <el-form :inline="true" class="demo-form-inline" :model="formData">
-          <el-form-item label="入库单编号" prop="entryNumber">
-            <el-input clearable placeholder="请输入内容" v-model="formData.entryNumber"></el-input>
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker
+              v-model="formData.startDate"
+              align="right"
+              type="date"
+              placeholder="选择日期"
+              value-format="yyyy-MM-dd"
+              :picker-options="pickerOptions"
+            ></el-date-picker>
           </el-form-item>
+          <el-form-item label="结束日期" prop="endDate">
+            <el-date-picker
+              v-model="formData.endDate"
+              align="right"
+              type="date"
+              placeholder="选择日期"
+              value-format="yyyy-MM-dd"
+              :picker-options="pickerOptions"
+            ></el-date-picker>
+          </el-form-item>
+        </el-form>
 
+        <el-form :inline="true" class="demo-form-inline" :model="formData" rules="rules">
+          <el-form-item label="到货单编号" prop="entryNumber">
+            <el-autocomplete
+              class="inline-input"
+              v-model="formData.entryNumber"
+              :fetch-suggestions="queryEntryNo"
+              placeholder="输入或选择"
+              @select="handleSelectEntryNo"
+              clearable
+              @change="handleSelecrEntryChange"
+            ></el-autocomplete>
+          </el-form-item>
+        </el-form>
+        <el-form :inline="true" class="demo-form-inline" :model="formData">
           <el-form-item>
             <el-button type="primary" @click="queryData">查询</el-button>
           </el-form-item>
@@ -35,7 +67,7 @@
           <el-table-column prop="unit_qty" label="单位" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_qty" label="标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_printed_qty" label="已打印标签数量" show-overflow-tooltip></el-table-column>
-          <el-table-column prop="lbl_non_printed_qty" label="未标签数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_non_printed_qty" label="未打印标签数量" show-overflow-tooltip></el-table-column>
 
           <el-table-column prop="lbl_printing_qty" label="本次打印数量">
             <template slot-scope="scope">
@@ -52,12 +84,50 @@
 export default {
   data() {
     return {
+      pickerOptions: {
+        disabledDate(time) {
+          //   return time.getTime() > Date.now() - 100;
+        },
+        shortcuts: [
+          {
+            text: "今天",
+            onClick(picker) {
+              picker.$emit("pick", new Date());
+            },
+          },
+          {
+            text: "昨天",
+            onClick(picker) {
+              const date = new Date();
+              date.setTime(date.getTime() - 3600 * 1000 * 24);
+              picker.$emit("pick", date);
+            },
+          },
+          {
+            text: "一周前",
+            onClick(picker) {
+              const date = new Date();
+              date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+              picker.$emit("pick", date);
+            },
+          },
+        ],
+      },
       lbl_printing_qty: "",
       activeName: "first",
       formData: {
+        startDate: "",
+        endDate: "",
         entryNumber: "",
+        entryID: "",
       },
+      formItemEntryNo: [],
       tableData: [],
+      rules: {
+        entryNumber: [
+          { required: true, message: "请选择或输入到货单号", trigger: "blur" },
+        ],
+      },
       multipleSelection: [],
     };
   },
@@ -69,16 +139,51 @@ export default {
     }
   },
   methods: {
-    queryData() {
-      if (this.formData.entryNumber === "") {
-        this.$message({
-          message: "请输入查询条件",
-          type: "error",
-          duration: 500,
-        });
+    queryEntryNo(queryString, cb) {
+      if (
+        this.formData.startDate == null ||
+        this.formData.startDate == "" ||
+        this.formData.endDate == null ||
+        this.formData.endDate == ""
+      ) {
         return false;
       }
-      this.getTableData();
+
+      this.$axios
+        .get(this.$Api.globalUrl + "/query_entry_no", {
+          params: this.formData,
+        })
+        .then((res) => {
+          let results = [];
+          if (res.data.ret_data !== null) {
+            for (let i = 0, len = res.data.ret_data.length; i < len; i++) {
+              res.data.ret_data[i].value = res.data.ret_data[i].entryNumber;
+            }
+            this.formItemEntryNo = res.data.ret_data;
+            results = queryString
+              ? this.formItemEntryNo.filter(this.createFilter(queryString))
+              : this.formItemEntryNo;
+          }
+          cb(results);
+        });
+    },
+
+    createFilter(queryString, queryArr) {
+      return (queryArr) => {
+        return (
+          queryArr.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0
+        );
+      };
+    },
+    handleSelectEntryNo(item) {
+      this.formData.entryID = item.entryID;
+    },
+    queryData() {
+      this.$refs.formData.validate((vallid) => {
+        if (!vallid) {
+          this.getTableData();
+        }
+      });
     },
     async getTableData() {
       try {
@@ -97,11 +202,21 @@ export default {
     },
     getRemoteData() {
       return this.$axios
-        .get(this.$Api.globalUrl + "/query_entry_no", {
+        .get(this.$Api.globalUrl + "/query_entry_data", {
           params: this.formData,
         })
         .then((res) => {
-          this.tableData = res.data.info;
+          if (res.data.ret_code != 200) {
+            this.$message({
+              message: res.data.ret_desc,
+              showClose: true,
+              type: "warning",
+              duration: 0,
+            });
+            return false;
+          }
+
+          this.tableData = res.data.ret_data;
         });
     },
     toggleSelection(rows) {
@@ -115,6 +230,9 @@ export default {
     },
     handleSelectionChange(val) {
       this.multipleSelection = val;
+    },
+    handleSelecrEntryChange() {
+      this.tableData = [];
     },
     printLable() {
       const _selectData = this.$refs.multipleTable.selection;
