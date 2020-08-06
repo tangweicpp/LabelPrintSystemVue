@@ -1,0 +1,256 @@
+<div>
+    <el-tabs v-model="activeName" @tab-click="handleClickTabs">
+      <el-tab-pane label="普通上传" name="first">
+        <el-form
+          :inline="true"
+          :model="formData"
+          class="demo-form-inline"
+          ref="formData"
+          :rules="rules"
+        >
+          <el-form-item label="客户代码" prop="custCode">
+            <el-select
+              v-model="formData.custCode"
+              placeholder="请选择"
+              filterable
+              clearable
+              @change="getCustPOTemplate"
+              ref="selCustCode"
+            >
+              <el-option
+                v-for="item in formItemCustCode"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="订单类型" prop="poType">
+            <el-select
+              v-model="formData.poType"
+              placeholder="请选择"
+              filterable
+              clearable
+              @change="poItemChange"
+              ref="selPoType"
+            >
+              <el-option
+                v-for="item in formItemPOType"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="保税/非保" prop="bondedType">
+            <el-select
+              v-model="formData.bondedType"
+              placeholder="请选择"
+              filterable
+              clearable
+              @change="poItemChange"
+              ref="selBonded"
+            >
+              <el-option
+                v-for="item in formItemBonded"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="报价单号" prop="offerSheet">
+            <el-input
+              v-model="formData.offerSheet"
+              clearable
+              placeholder="请输入内容"
+              :disabled="!this.rules.offerSheet[0].required"
+            ></el-input>
+          </el-form-item>
+          <el-form-item prop="delayDays">
+            <el-checkbox v-model="formData.needDelay" @change="poItemChange">延长账期</el-checkbox>
+            <div v-if="formData.needDelay === true">
+              <el-input v-model="formData.delayDays" placeholder="请输入延长的天数"></el-input>
+            </div>
+            <div v-else>
+              <el-input v-model="formData.delayDays" placeholder="请输入延长的天数" disabled></el-input>
+            </div>
+          </el-form-item>
+
+          <el-form-item prop="mailTip">
+            <el-checkbox v-model="formData.needMailTip" @change="poItemChange">邮件提醒</el-checkbox>
+            <div v-if="formData.needMailTip === true">
+              <el-input
+                v-model="formData.mailTip"
+                type="textarea"
+                autosize
+                clearable
+                placeholder="请输入内容"
+              ></el-input>
+            </div>
+            <div v-else>
+              <el-input
+                v-model="formData.mailTip"
+                type="textarea"
+                autosize
+                clearable
+                disabled
+                placeholder="请输入内容"
+              ></el-input>
+            </div>
+          </el-form-item>
+        </el-form>
+        <!-- Table -->
+        <el-button type="text" @click="outerVisible = true">查看上次上传订单数据</el-button>
+
+        <el-dialog title="以下为上传WO的汇总数据" :visible.sync="outerVisible" width="80%">
+          <el-dialog title="WO明细数据" :visible.sync="innerVisible" append-to-body width="100%">
+            <el-table
+              :data="gridDataDetail"
+              border
+              stripe
+              size="medium"
+              highlight-current-row
+              :header-cell-style="{background:'rgb(175, 175, 175)',color:'black'}"
+              :row-style="{height:'20px'}"
+              :cell-style="{padding:'5px 0'}"
+              show-overflow-tooltip
+            >
+              <el-table-column property="id" label="序号" show-overflow-tooltip width="50"></el-table-column>
+              <el-table-column property="po_id" label="PO" show-overflow-tooltip></el-table-column>
+              <el-table-column property="cust_code" label="客户代码" show-overflow-tooltip></el-table-column>
+              <el-table-column property="fab_device" label="FAB机种" show-overflow-tooltip></el-table-column>
+              <el-table-column property="cust_device" label="客户机种" show-overflow-tooltip></el-table-column>
+              <el-table-column property="npi_owner" label="NPI负责人" show-overflow-tooltip></el-table-column>
+              <el-table-column property="ht_pn" label="厂内机种" show-overflow-tooltip></el-table-column>
+              <el-table-column property="lot_id" label="LOTID" show-overflow-tooltip></el-table-column>
+              <el-table-column property="wafer_no" label="WAFER ID" show-overflow-tooltip></el-table-column>
+              <el-table-column property="wafer_id" label="晶圆ID" show-overflow-tooltip></el-table-column>
+              <el-table-column property="good_dies" label="良品DIES" show-overflow-tooltip></el-table-column>
+              <el-table-column property="ng_dies" label="NGDIES" show-overflow-tooltip></el-table-column>
+              <el-table-column property="mark_code" label="打标码" show-overflow-tooltip></el-table-column>
+            </el-table>
+          </el-dialog>
+          <el-table
+            :data="gridDataTotal"
+            border
+            stripe
+            size="medium"
+            highlight-current-row
+            :header-cell-style="{background:'rgb(175, 175, 175)',color:'black'}"
+            :row-style="{height:'20px'}"
+            :cell-style="{padding:'5px 0'}"
+            show-overflow-tooltip
+          >
+            <el-table-column property="id" label="序号" show-overflow-tooltip width="50"></el-table-column>
+            <el-table-column property="po_id" label="PO" show-overflow-tooltip></el-table-column>
+            <el-table-column property="banded" label="保税非保" show-overflow-tooltip></el-table-column>
+            <el-table-column property="cust_code" label="客户代码" show-overflow-tooltip></el-table-column>
+            <el-table-column property="cust_device" label="客户机种" show-overflow-tooltip></el-table-column>
+            <el-table-column property="fab_device" label="FAB机种" show-overflow-tooltip></el-table-column>
+            <el-table-column property="ht_pn" label="厂内机种" show-overflow-tooltip></el-table-column>
+            <el-table-column property="wafer_pn" label="晶圆料号" show-overflow-tooltip></el-table-column>
+            <el-table-column property="lot_id" label="LOTID" show-overflow-tooltip></el-table-column>
+            <el-table-column property="wafer_qty" label="wafer片" show-overflow-tooltip></el-table-column>
+            <el-table-column property="die_qty" label="die数" show-overflow-tooltip></el-table-column>
+            <el-table-column property="upload_by" label="上传人员"></el-table-column>
+            <el-table-column property="upload_date" label="上传日期"></el-table-column>-->
+          </el-table>
+          <div slot="footer" class="dialog-footer">
+            <el-button @click="outerVisible = false">取 消</el-button>
+            <el-button type="primary" @click="innerVisible = true">查看明细数据</el-button>
+          </div>
+        </el-dialog>
+
+        <el-divider content-position="left">文件上传</el-divider>
+        <!-- 2.模板文件上传 -->
+        <el-table :data="tableData" style="width: 100%">
+          <el-table-column label="序号" width="60">
+            <template slot-scope="scope">
+              <i class="el-icon-time"></i>
+              <span style="margin-left: 10px">{{ scope.$index + 1 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="模板文件(可下载)">
+            <template slot-scope="scope">
+              <el-link
+                :href="scope.row.file_url"
+                target="_blank"
+                type="primary"
+              >{{scope.row.file_name}}</el-link>
+            </template>
+          </el-table-column>
+          <el-table-column label="模板示意(可参考)">
+            <template slot-scope="scope">
+              <el-popover trigger="focus" placement="top">
+                <img :src="scope.row.img_url" />
+                <img
+                  slot="reference"
+                  :src="scope.row.img_url"
+                  alt
+                  style="max-height: 50px;max-width: 130px"
+                />
+              </el-popover>
+            </template>
+          </el-table-column>
+          <el-table-column label="关键字段">
+            <template slot-scope="scope">
+              <el-tag size="medium">{{ scope.row.file_key }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="文件层级">
+            <template slot-scope="scope">
+              <div v-if="scope.row.level === 'primary'">
+                <el-tag size="medium" type="danger" effect="dark">{{ scope.row.level }}</el-tag>
+              </div>
+              <div v-else-if="scope.row.level === 'secondary'">
+                <el-tag size="medium" type="info" effect="dark">{{ scope.row.level }}</el-tag>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="上传文件">
+            <template slot-scope="scope">
+              <el-upload
+                class="upload-demo"
+                ref="upload"
+                name="poFile"
+                :data="formData"
+                :disabled="authenStatus==0?true:false"
+                :show-file-list="scope.row.show_filelist_flag"
+                :accept="scope.row.accept"
+                :action= "uploadUrl"
+                :limit="1"
+                :on-preview="handlePreview"
+                :on-remove="handleRemove"
+                :on-exceed="handleExceed"
+                :before-upload="handleBeforeupload"
+                :on-change="handleChange"
+                :on-progress="(event, file, fileList)=>{handleProgress(event, file, fileList, scope.row)}"
+                :on-success="(response, file, fileList)=>{handleSuccess(response, file, fileList, scope.row)}"
+                :on-error="(err, file, fileList)=>{handleError(err, file, fileList, scope.row)}"
+                :file-list="fileList"
+              >
+                <el-button
+                  slot="trigger"
+                  size="small"
+                  type="success"
+                  :disabled="btnDisable"
+                  @click="handleClickUpload(scope.row)"
+                >选取文件</el-button>
+              </el-upload>
+              <el-progress
+                v-if="scope.row.show_progress_flag"
+                :percentage="scope.row.load_progress"
+              ></el-progress>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+      <el-tab-pane label="模板配置" name="second"></el-tab-pane>
+      <el-tab-pane label="角色管理" name="third">角色管理</el-tab-pane>
+      <el-tab-pane label="定时任务补偿" name="fourth">定时任务补偿</el-tab-pane>
+    </el-tabs>
+</div>
