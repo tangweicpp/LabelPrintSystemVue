@@ -358,7 +358,7 @@ export default {
         });
         return false;
       }
-    //   console.log(_selectData);
+      //   console.log(_selectData);
       if (this.checkPrintingQty(_selectData)) {
         this.$confirm("是否确定现在打印?", "提示", {
           confirmButtonText: "确定",
@@ -405,24 +405,42 @@ export default {
         });
         return false;
       }
-      console.log(_selectData);
-      this.$axios
-        .post(this.$Api.globalUrl + "/print_label_again", _selectData)
-        .then((res) => {
-          console.log(res);
-          if (res.data.ret_code === 200) {
-            this.$message({
-              message: "补打成功",
-              type: "success",
-              duration: 800,
+
+      //   console.log(_selectData);
+
+      this.$prompt("请输入补打原因", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+      })
+        .then(({ value }) => {
+          _selectData.forEach((row) => {
+            row["print_reason"] = value;
+          });
+
+          this.$axios
+            .post(this.$Api.globalUrl + "/print_label_again", _selectData)
+            .then((res) => {
+              console.log(res);
+              if (res.data.ret_code === 200) {
+                this.$message({
+                  message: "补打成功",
+                  type: "success",
+                  duration: 800,
+                });
+              } else {
+                this.$message({
+                  message: "打印失败",
+                  type: "error",
+                  duration: 800,
+                });
+              }
             });
-          } else {
-            this.$message({
-              message: "打印失败",
-              type: "error",
-              duration: 800,
-            });
-          }
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "取消补打",
+          });
         });
     },
 
