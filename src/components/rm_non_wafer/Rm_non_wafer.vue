@@ -52,10 +52,10 @@
             <el-button type="success" @click="printLable">打印</el-button>
           </el-form-item>
           <el-form-item>
-            <el-button type="warning" @click="printLableAgain">补打</el-button>
+            <el-button type="info" @click="dialogVisible = true">单位维护</el-button>
           </el-form-item>
           <el-form-item>
-            <el-button type="info" @click="dialogVisible = true">单位用量维护</el-button>
+            <el-button type="warning" @click="printLableAgain">补打</el-button>
           </el-form-item>
         </el-form>
         <el-table
@@ -167,7 +167,11 @@ export default {
       tableData: [],
       rules: {
         entryNumber: [
-          { required: true, message: "请选择或输入到货单号", trigger: "change" },
+          {
+            required: true,
+            message: "请选择或输入到货单号",
+            trigger: "change",
+          },
         ],
       },
       multipleSelection: [],
@@ -248,8 +252,9 @@ export default {
         row["lbl_qty"] = parseInt(row["lbl_qty"]);
         row["lbl_printed_qty"] = parseInt(row["lbl_printed_qty"]);
         row["lbl_non_printed_qty"] = parseInt(row["lbl_non_printed_qty"]);
-        row["lbl_printing_qty"] = row["lbl_qty"];
+        row["lbl_printing_qty"] = row["lbl_non_printed_qty"];
         row["entry_no"] = this.formData.entryNumber;
+        row["user_name"] = localStorage.getItem("userName");
       });
     },
     getRemoteData() {
@@ -292,8 +297,59 @@ export default {
     handleSelecrEntryChange() {
       this.tableData = [];
     },
+    checkPrintingQty(_selectData) {
+      let ret = true;
+      let print_total_qty = 0;
+
+      _selectData.forEach((row) => {
+        let print_qty = parseInt(row["lbl_printing_qty"]);
+        let nonPrintQty = row["lbl_non_printed_qty"];
+
+        if (print_qty > nonPrintQty) {
+          this.$alert(
+            "打印数量不可大于当前未打印数量，请重新修改打印数量",
+            "错误提醒",
+            {
+              confirmButtonText: "确定",
+              callback: (action) => {
+                this.$message({
+                  type: "info",
+                  message: "已取消打印",
+                });
+              },
+            }
+          );
+
+          ret = false;
+          return false;
+        }
+
+        print_total_qty = print_total_qty + print_qty;
+      });
+
+      if (ret == false) {
+        return ret;
+      }
+
+      if (print_total_qty > 100) {
+        this.$alert("打印数量不可大于100，请重新修改打印数量", "错误提醒", {
+          confirmButtonText: "确定",
+          callback: (action) => {
+            this.$message({
+              type: "info",
+              message: "已取消打印",
+            });
+          },
+        });
+        return false;
+      }
+
+      return true;
+    },
+
     printLable() {
       const _selectData = this.$refs.multipleTable.selection;
+
       if (_selectData.length === 0) {
         this.$message({
           message: "请先查询出明细，否则无法打印",
@@ -302,25 +358,42 @@ export default {
         });
         return false;
       }
-      console.log(_selectData);
-      this.$axios
-        .post(this.$Api.globalUrl + "/print_label", _selectData)
-        .then((res) => {
-          console.log(res);
-          if (res.data.ret_code === 200) {
+    //   console.log(_selectData);
+      if (this.checkPrintingQty(_selectData)) {
+        this.$confirm("是否确定现在打印?", "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        })
+          .then(() => {
+            this.$axios
+              .post(this.$Api.globalUrl + "/print_label", _selectData)
+              .then((res) => {
+                console.log(res);
+                if (res.data.ret_code === 200) {
+                  this.$message({
+                    message: "打印成功",
+                    type: "success",
+                    duration: 800,
+                  });
+                } else {
+                  this.$message({
+                    message: "打印失败",
+                    type: "error",
+                    duration: 800,
+                  });
+                }
+
+                this.queryData();
+              });
+          })
+          .catch(() => {
             this.$message({
-              message: "打印成功",
-              type: "success",
-              duration: 800,
+              type: "info",
+              message: "已取消打印",
             });
-          } else {
-            this.$message({
-              message: "打印失败",
-              type: "error",
-              duration: 800,
-            });
-          }
-        });
+          });
+      }
     },
     printLableAgain() {
       const _selectData = this.$refs.multipleTable.selection;
