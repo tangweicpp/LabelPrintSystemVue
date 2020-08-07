@@ -71,7 +71,7 @@
           <el-table-column prop="lot_id" label="到货批号" show-overflow-tooltip></el-table-column>
           <el-table-column prop="total_qty" label="总数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="unit_qty" label="单位" show-overflow-tooltip></el-table-column>
-          <el-table-column prop="lbl_qty" label="标签数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_qty" label="总标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_printed_qty" label="已打印标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_non_printed_qty" label="未打印标签数量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="lbl_printing_qty" label="本次打印数量">
@@ -331,8 +331,8 @@ export default {
         return ret;
       }
 
-      if (print_total_qty > 100) {
-        this.$alert("打印数量不可大于100，请重新修改打印数量", "错误提醒", {
+      if (print_total_qty > 200) {
+        this.$alert("打印数量不可大于200，请重新修改打印数量", "错误提醒", {
           confirmButtonText: "确定",
           callback: (action) => {
             this.$message({
