@@ -113,6 +113,118 @@
           <el-button type="primary" @click="setUnitQty">确 定</el-button>
         </el-dialog>
       </el-tab-pane>
+      <el-tab-pane label="进料标签打印" name="second">
+        <el-form :inline="true" class="demo-form-inline" :model="formData">
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker
+              v-model="formData.startDate"
+              align="right"
+              type="date"
+              placeholder="选择日期"
+              value-format="yyyy-MM-dd"
+              :picker-options="pickerOptions"
+            ></el-date-picker>
+          </el-form-item>
+          <el-form-item label="结束日期" prop="endDate">
+            <el-date-picker
+              v-model="formData.endDate"
+              align="right"
+              type="date"
+              placeholder="选择日期"
+              value-format="yyyy-MM-dd"
+              :picker-options="pickerOptions"
+            ></el-date-picker>
+          </el-form-item>
+        </el-form>
+
+        <el-form
+          :inline="true"
+          class="demo-form-inline"
+          :model="formData"
+          :rules="rules"
+          ref="formData"
+        >
+          <el-form-item label="采购单编号" prop="poID">
+            <el-autocomplete
+              class="inline-input"
+              v-model="formData3.poID"
+              :fetch-suggestions="queryEntryNo"
+              placeholder="输入或选择"
+              @select="handleSelectEntryNo"
+              clearable
+              @change="handleSelecrEntryChange"
+            ></el-autocomplete>
+          </el-form-item>
+        </el-form>
+        <el-form :inline="true" class="demo-form-inline" :model="formData">
+          <el-form-item>
+            <el-button type="primary" @click="queryData">查询</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="success" @click="printLable">打印</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="info" @click="dialogVisible = true">单位维护</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="warning" @click="printLableAgain">补打</el-button>
+          </el-form-item>
+        </el-form>
+        <el-table
+          ref="multipleTable"
+          :data="tableData"
+          tooltip-effect="dark"
+          style="font-size: 10px"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="55"></el-table-column>
+          <el-table-column prop="part_no" label="料号" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="part_name" label="物料名称" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lot_id" label="到货批号" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="total_qty" label="总数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="unit_qty" label="单位" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_qty" label="总标签数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_printed_qty" label="已打印标签数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_non_printed_qty" label="未打印标签数量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="lbl_printing_qty" label="本次打印数量">
+            <template slot-scope="scope">
+              <el-input size="mini" type="number" v-model="scope.row.lbl_printing_qty"></el-input>
+            </template>
+          </el-table-column>
+          <el-table-column prop="lbl_print_again_qty" label="补打标签数量">
+            <template slot-scope="scope">
+              <el-input size="mini" type="number" v-model="scope.row.lbl_print_again_qty"></el-input>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-dialog
+          title="维护物料单位数量"
+          :visible.sync="dialogVisible"
+          width="30%"
+          :before-close="handleClose"
+        >
+          <el-form
+            :inline="true"
+            class="demo-form-inline"
+            :model="formData2"
+            :rules="rules"
+            ref="formData2"
+          >
+            <el-form-item label="物料名称" prop="partName">
+              <el-input v-model="formData2.partName" placeholder="输入物料名称" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="料号" prop="partID">
+              <el-input v-model="formData2.partID" placeholder="输入料号" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="单位数量" prop="unitQty">
+              <el-input v-model="formData2.unitQty" type="number" placeholder="输入单位数量" clearable></el-input>
+            </el-form-item>
+          </el-form>
+
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="setUnitQty">确 定</el-button>
+        </el-dialog>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -162,6 +274,11 @@ export default {
         partName: "",
         partID: "",
         unitQty: "",
+      },
+      formData3: {
+        htProductID: "",
+        poID: "",
+        poSubID: "",
       },
       formItemEntryNo: [],
       tableData: [],
